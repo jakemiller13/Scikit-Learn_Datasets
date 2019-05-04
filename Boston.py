@@ -46,17 +46,8 @@ scaler = StandardScaler()
 X_train = scaler.fit_transform(X_train)
 X_test = scaler.fit_transform(X_test)
 
-# Linear SVR - create, train and predict
-linSVR_clf = SVR(kernel = 'linear')
-linSVR_clf.fit(X_train, y_train)
-linSVR_pred = linSVR_clf.predict(X_test)
-
-# Check MSE
-lin_MSE = mean_squared_error(y_test, linSVR_pred)
-print('\nMean Squared Error: {}'.format(lin_MSE))
 
 
-# TODO move to correct location and apply to other kernels
 def plot_compare(classifier):
     '''
     Plots predicted results vs. actual results
@@ -67,49 +58,33 @@ def plot_compare(classifier):
     plt.plot(np.arange(0, 60, 10), np.arange(0, 60, 10), 'k-.',
              linewidth = 3,
              alpha = 0.7)
-    plt.title('SVR w/ {} Kernel, MSE: {}'.format(
-              classifier.get_params()['kernel'].capitalize(),
-              mse))
+    try:
+        plt.title('SVR w/ {} Kernel, MSE: {}'.format(
+                  classifier.get_params()['kernel'].upper(),
+                  mse))
+    except KeyError:
+        plt.title('Grid Search - C: {}, Kernel: {} - MSE: {}'.format(
+                grid_clf.best_params_['C'],
+                grid_clf.best_params_['kernel'].upper(),
+                mse))
     plt.xlabel('Actual')
     plt.ylabel('Predicted')
     plt.xlim(-10, 60)
     plt.ylim(-10, 60)
     plt.show()
-    
 
-
-# Plot predicted vs. actual
-plt.scatter(y_test, linSVR_pred, s = 10)
-plt.plot(np.arange(0, 60, 10), np.arange(0, 60, 10), 'k-.',
-         linewidth = 3,
-         alpha = 0.7)
-plt.title('SVR w/ Linear Kernel, MSE: {}'.format(lin_MSE))
-plt.xlabel('Actual')
-plt.ylabel('Predicted')
-plt.xlim(-10, 60)
-plt.ylim(-10, 60)
-plt.show()
+# Linear SVR - create, train and predict
+linSVR_clf = SVR(kernel = 'linear')
+linSVR_clf.fit(X_train, y_train)
+linSVR_pred = linSVR_clf.predict(X_test)
+plot_compare(linSVR_clf)
 
 # RBF SVR
 rbfSVR_clf = SVR(kernel = 'rbf', gamma = 'scale', C = 100)
 rbfSVR_clf.fit(X_train, y_train)
 rbfSVR_pred = rbfSVR_clf.predict(X_test)
+plot_compare(rbfSVR_clf)
 
-# Check MSE
-rbf_MSE = mean_squared_error(y_test, rbfSVR_pred)
-print('\nMean Squared Error: {}'.format(rbf_MSE))
-
-# Plot predicted vs. actual
-plt.scatter(y_test, rbfSVR_pred, s = 10)
-plt.plot(np.arange(0, 60, 10), np.arange(0, 60, 10), 'k-.',
-         linewidth = 3,
-         alpha = 0.7)
-plt.title('SVR w/ RBF Kernel, MSE: {}'.format(rbf_MSE))
-plt.xlabel('Actual')
-plt.ylabel('Predicted')
-plt.xlim(-10, 60)
-plt.ylim(-10, 60)
-plt.show()
 print()
 
 # GridSearch - MUCH faster with scaling features
@@ -120,30 +95,16 @@ grid_clf = GridSearchCV(grid_svr,
                         parameters,
                         cv = 5,
                         scoring = 'neg_mean_squared_error',
-                        verbose = 2)
+                        verbose = 1)
 grid_clf.fit(X_train, y_train)
 grid_pred = grid_clf.predict(X_test)
 
 # Get some useful results from GridSearch
-print('\n--- GridSearch Results ---')
+print('\n--- Grid Search Results ---')
 print('\nBest Estimator:\n' + str(grid_clf.best_estimator_))
-print('\nScore:\n' + str(grid_clf.best_score_))
+print('\nScore:\n' + str(grid_clf.best_score_) + '\n')
 
-# Predict and get MSE
-grid_MSE = mean_squared_error(y_test, grid_pred)
-print('\nMean Squared Error: {}\n'.format(grid_MSE))
-
-# Plot predicted vs. actual
-plt.scatter(y_test, grid_pred, s = 10)
-plt.plot(np.arange(0, 60, 10), np.arange(0, 60, 10), 'k-.',
-         linewidth = 3,
-         alpha = 0.7)
-plt.title('Grid Search, MSE: {}'.format(grid_MSE))
-plt.xlabel('Actual')
-plt.ylabel('Predicted')
-plt.xlim(-10, 60)
-plt.ylim(-10, 60)
-plt.show()
+plot_compare(grid_clf)
 
 # TODO if few features important: Lasso, ElasticNet
 # TODO otherwise RidgeRegression, SVR(kernel = linear, rbf), EnsembleRegressors
